@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<title>Végtelen Jegyzet PRO</title>
+
+<style>
+body {
+    margin: 0;
+    background: #0e0e0e;
+    color: #eee;
+    font-family: Consolas, monospace;
+}
+
+/* felső sáv */
+#topbar {
+    display: flex;
+    background: #1a1a1a;
+    padding: 5px;
+    gap: 5px;
+}
+
+button, select, input {
+    background: #222;
+    color: #eee;
+    border: 1px solid #333;
+    padding: 5px 8px;
+    font-family: Consolas, monospace;
+}
+
+button:hover {
+    background: #333;
+    cursor: pointer;
+}
+
+/* jegyzet */
+textarea {
+    width: 100vw;
+    height: calc(100vh - 40px);
+    background: #0e0e0e;
+    color: #eee;
+    border: none;
+    outline: none;
+    padding: 15px;
+    font-size: 14px;
+    resize: none;
+    line-height: 1.4;
+}
+</style>
+</head>
+
+<body>
+
+<div id="topbar">
+    <select id="notes"></select>
+    <button onclick="newNote()">+ Új jegyzet</button>
+    <button onclick="insertDate()">🕒 Dátum</button>
+    <button onclick="downloadTxt()">⬇ Mentés TXT</button>
+    <input id="search" placeholder="Keresés..." oninput="searchText()">
+</div>
+
+<textarea id="editor" placeholder="Ide bármit írhatsz vagy bemásolhatsz..."></textarea>
+
+<script>
+let notes = JSON.parse(localStorage.getItem("NOTES")) || { "Alap jegyzet": "" };
+let current = localStorage.getItem("CURRENT_NOTE") || "Alap jegyzet";
+
+const editor = document.getElementById("editor");
+const notesSelect = document.getElementById("notes");
+
+/* jegyzetlista */
+function refreshList() {
+    notesSelect.innerHTML = "";
+    for (let n in notes) {
+        let opt = document.createElement("option");
+        opt.value = n;
+        opt.textContent = n;
+        notesSelect.appendChild(opt);
+    }
+    notesSelect.value = current;
+}
+
+refreshList();
+editor.value = notes[current] || "";
+
+/* váltás */
+notesSelect.onchange = () => {
+    save();
+    current = notesSelect.value;
+    localStorage.setItem("CURRENT_NOTE", current);
+    editor.value = notes[current];
+};
+
+/* mentés */
+function save() {
+    notes[current] = editor.value;
+    localStorage.setItem("NOTES", JSON.stringify(notes));
+}
+
+editor.addEventListener("input", save);
+
+/* új jegyzet */
+function newNote() {
+    let name = prompt("Jegyzet neve:");
+    if (!name || notes[name]) return;
+    notes[name] = "";
+    current = name;
+    refreshList();
+    editor.value = "";
+    save();
+}
+
+/* dátum beszúrás */
+function insertDate() {
+    const d = new Date().toLocaleString();
+    editor.value += `\n[${d}]\n`;
+    save();
+}
+
+/* keresés */
+function searchText() {
+    const q = document.getElementById("search").value.toLowerCase();
+    if (!q) return;
+    const pos = editor.value.toLowerCase().indexOf(q);
+    if (pos !== -1) {
+        editor.focus();
+        editor.setSelectionRange(pos, pos + q.length);
+    }
+}
+
+/* txt mentés */
+function downloadTxt() {
+    const blob = new Blob([editor.value], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = current + ".txt";
+    a.click();
+}
+</script>
+
+</body>
+</html>
